@@ -1,130 +1,91 @@
-import React, { useCallback } from 'react'
+import React, {useEffect} from 'react';
 import './App.css';
-import { TaskType, Todolist } from './Todolist';
-import { AddItemForm } from './AddItemForm';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import IconButton from '@mui/material/IconButton';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid';
-import Paper from '@mui/material/Paper';
-import { Menu } from '@mui/icons-material';
+import {Button} from './Button';
+import {Settings} from "./Settings";
+import {Counter} from "./Counter";
+import {useDispatch, useSelector} from "react-redux";
 import {
-    addTodolistAC,
-    changeTodolistFilterAC,
-    changeTodolistTitleAC,
-    removeTodolistAC
-} from './state/todolists-reducer';
-import { addTaskAC, changeTaskStatusAC, changeTaskTitleAC, removeTaskAC } from './state/tasks-reducer';
-import { useDispatch, useSelector } from 'react-redux';
-import { AppRootStateType } from './state/store';
+    BUTTONS_TITLES,
+    changeMaxValueAC,
+    changeStartValueAC,
+    setCounterAC, setIncButtonAC, setSettingButtonAC
+} from "./bll/reducer";
+import {AppStoreType} from "./bll/store";
 
+export const App = () => {
+    let errorValue = useSelector<AppStoreType, string>(state => state.counterState.errorValue)
+    let startValue = useSelector<AppStoreType, number>(state => state.counterState.startValue)
+    let maxValue = useSelector<AppStoreType, number>(state => state.counterState.maxValue)
+    let setButton = useSelector<AppStoreType, boolean>(state => state.counterState.setButton)
+    let counter = useSelector<AppStoreType, number>(state => state.counterState.counter)
+    let incButton = useSelector<AppStoreType, boolean>(state => state.counterState.incButton)
+    let resetButton = useSelector<AppStoreType, boolean>(state => state.counterState.resetButton)
 
-export type FilterValuesType = 'all' | 'active' | 'completed';
-export type TodolistType = {
-    id: string
-    title: string
-    filter: FilterValuesType
-}
+    const dispatch = useDispatch()
 
-export type TasksStateType = {
-    [key: string]: Array<TaskType>
-}
+    // Using hook useEffect for getting data from local storage
+    useEffect(() => {
+        let min = localStorage.getItem('minValue')
+        let max = localStorage.getItem('maxValue')
+        if (min && max) {
+            dispatch(changeStartValueAC(+min))
+            dispatch(changeMaxValueAC(+max))
+        }
+    }, [])
 
+    const changeMaxValue = (maxValue: number) => {
+        dispatch(changeMaxValueAC(maxValue))
+    }
 
-function App() {
+    const changeStartValue = (startValue: number) => {
+        dispatch(changeStartValueAC(startValue))
+    }
 
-    const todolists = useSelector<AppRootStateType, Array<TodolistType>>(state => state.todolists)
-    const tasks = useSelector<AppRootStateType, TasksStateType>(state => state.tasks)
-    const dispatch = useDispatch();
+    const onSetButtonClick = () => {
+        dispatch(setSettingButtonAC('', true, startValue, false, false))
+        // Setting data into local storage
+        localStorage.setItem('minValue', startValue.toString())
+        localStorage.setItem('maxValue', maxValue.toString())
+    }
 
-    const removeTask = useCallback(function (id: string, todolistId: string) {
-        const action = removeTaskAC(id, todolistId);
-        dispatch(action);
-    }, []);
+    const onIncButtonClick = () => {
+        counter = counter + 1
+        dispatch(setCounterAC(counter))
+    }
 
-    const addTask = useCallback(function (title: string, todolistId: string) {
-        const action = addTaskAC(title, todolistId);
-        dispatch(action);
-    }, []);
-
-    const changeStatus = useCallback(function (id: string, isDone: boolean, todolistId: string) {
-        const action = changeTaskStatusAC(id, isDone, todolistId);
-        dispatch(action);
-    }, []);
-
-    const changeTaskTitle = useCallback(function (id: string, newTitle: string, todolistId: string) {
-        const action = changeTaskTitleAC(id, newTitle, todolistId);
-        dispatch(action);
-    }, []);
-
-    const changeFilter = useCallback(function (value: FilterValuesType, todolistId: string) {
-        const action = changeTodolistFilterAC(todolistId, value);
-        dispatch(action);
-    }, []);
-
-    const removeTodolist = useCallback(function (id: string) {
-        const action = removeTodolistAC(id);
-        dispatch(action);
-    }, []);
-
-    const changeTodolistTitle = useCallback(function (id: string, title: string) {
-        const action = changeTodolistTitleAC(id, title);
-        dispatch(action);
-    }, []);
-
-    const addTodolist = useCallback((title: string) => {
-        const action = addTodolistAC(title);
-        dispatch(action);
-    }, [dispatch]);
+    const onResetButtonClick = () => {
+        dispatch(setCounterAC(startValue))
+        dispatch(setIncButtonAC(false))
+    }
 
     return (
         <div className="App">
-            <AppBar position="static">
-                <Toolbar>
-                    <IconButton edge="start" color="inherit" aria-label="menu">
-                        <Menu/>
-                    </IconButton>
-                    <Typography variant="h6">
-                        News
-                    </Typography>
-                    <Button color="inherit">Login</Button>
-                </Toolbar>
-            </AppBar>
-            <Container fixed>
-                <Grid container style={{padding: '20px'}}>
-                    <AddItemForm addItem={addTodolist}/>
-                </Grid>
-                <Grid container spacing={3}>
-                    {
-                        todolists.map(tl => {
-                            let allTodolistTasks = tasks[tl.id];
-
-                            return <Grid item key={tl.id}>
-                                <Paper style={{padding: '10px'}}>
-                                    <Todolist
-                                        id={tl.id}
-                                        title={tl.title}
-                                        tasks={allTodolistTasks}
-                                        removeTask={removeTask}
-                                        changeFilter={changeFilter}
-                                        addTask={addTask}
-                                        changeTaskStatus={changeStatus}
-                                        filter={tl.filter}
-                                        removeTodolist={removeTodolist}
-                                        changeTaskTitle={changeTaskTitle}
-                                        changeTodolistTitle={changeTodolistTitle}
-                                    />
-                                </Paper>
-                            </Grid>
-                        })
-                    }
-                </Grid>
-            </Container>
+            <div className="settingsBlock">
+                <Settings maxValueTitle={BUTTONS_TITLES.MAX_VALUE_TITLE}
+                          startValueTitle={BUTTONS_TITLES.START_VALUE_TITLE}
+                          maxValue={maxValue}
+                          startValue={startValue}
+                          changeMaxValue={changeMaxValue}
+                          changeStartValue={changeStartValue}
+                />
+                <div className="buttons">
+                    <Button title={BUTTONS_TITLES.SET_TITLE}
+                            disabled={setButton}
+                            execFunc={onSetButtonClick}
+                    />
+                </div>
+            </div>
+            <div className="counterBlock">
+                <Counter counter={counter}
+                         maxValue={maxValue}
+                         minValue={startValue}
+                         error={errorValue}
+                />
+                <div className="buttons">
+                    <Button title={BUTTONS_TITLES.INC_TITLE} disabled={incButton} execFunc={onIncButtonClick}/>
+                    <Button title={BUTTONS_TITLES.RESET_TITLE} disabled={resetButton} execFunc={onResetButtonClick}/>
+                </div>
+            </div>
         </div>
     );
 }
-
-export default App;
